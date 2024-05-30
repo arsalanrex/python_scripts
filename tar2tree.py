@@ -5,8 +5,23 @@ import tempfile
 
 
 def extract_tarball(tarball_path, extract_path):
+    def is_within_directory(directory, target):
+        # Returns True if the target is within the directory
+        abs_directory = os.path.abspath(directory)
+        abs_target = os.path.abspath(target)
+        prefix = os.path.commonprefix([abs_directory, abs_target])
+        return prefix == abs_directory
+
+    def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+        # Safely extract members from tarball, skipping symbolic links
+        for member in tar.getmembers():
+            member_path = os.path.join(path, member.name)
+            if not is_within_directory(path, member_path):
+                raise Exception("Attempted Path Traversal in Tar File")
+        tar.extractall(path, members, numeric_owner=numeric_owner)
+
     with tarfile.open(tarball_path, "r:*") as tar:
-        tar.extractall(path=extract_path)
+        safe_extract(tar, extract_path)
         for member in tar.getmembers():
             if member.isfile() and member.name.endswith(('.tar', '.tar.gz', '.tar.bz2', '.tar.xz')):
                 nested_tar_path = os.path.join(extract_path, member.name)
