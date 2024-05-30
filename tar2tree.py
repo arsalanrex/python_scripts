@@ -19,16 +19,19 @@ def extract_tarball(tarball_path, extract_path, max_depth, current_depth=1):
                 raise Exception("Attempted Path Traversal in Tar File")
         tar.extractall(path, members, numeric_owner=numeric_owner)
 
-    with tarfile.open(tarball_path, "r:*") as tar:
-        safe_extract(tar, extract_path)
-        if current_depth < max_depth:
-            for member in tar.getmembers():
-                if member.isfile() and member.name.endswith(('.tar', '.tar.gz', '.tar.bz2', '.tar.xz')):
-                    nested_tar_path = os.path.join(extract_path, member.name)
-                    nested_extract_path = os.path.join(extract_path, member.name + "_contents")
-                    os.makedirs(nested_extract_path, exist_ok=True)
-                    print(f"Extracting nested tarball {nested_tar_path} into {nested_extract_path}")
-                    extract_tarball(nested_tar_path, nested_extract_path, max_depth, current_depth + 1)
+    try:
+        with tarfile.open(tarball_path, "r:*") as tar:
+            safe_extract(tar, extract_path)
+            if current_depth < max_depth:
+                for member in tar.getmembers():
+                    if member.isfile() and member.name.endswith(('.tar', '.tar.gz', '.tar.bz2', '.tar.xz')):
+                        nested_tar_path = os.path.join(extract_path, member.name)
+                        nested_extract_path = os.path.join(extract_path, member.name + "_contents")
+                        os.makedirs(nested_extract_path, exist_ok=True)
+                        print(f"Extracting nested tarball {nested_tar_path} into {nested_extract_path}")
+                        extract_tarball(nested_tar_path, nested_extract_path, max_depth, current_depth + 1)
+    except Exception as e:
+        print(f"Skipping {tarball_path} due to error: {e}")
 
 def list_contents_in_tree_format(path, output_file):
     try:
