@@ -3,8 +3,7 @@ import tarfile
 import subprocess
 import shutil
 
-
-def extract_tarball(tarball_path, extract_path):
+def extract_tarball(tarball_path, extract_path, max_depth, current_depth=1):
     def is_within_directory(directory, target):
         # Returns True if the target is within the directory
         abs_directory = os.path.abspath(directory)
@@ -22,14 +21,14 @@ def extract_tarball(tarball_path, extract_path):
 
     with tarfile.open(tarball_path, "r:*") as tar:
         safe_extract(tar, extract_path)
-        for member in tar.getmembers():
-            if member.isfile() and member.name.endswith(('.tar', '.tar.gz', '.tar.bz2', '.tar.xz')):
-                nested_tar_path = os.path.join(extract_path, member.name)
-                nested_extract_path = os.path.join(extract_path, member.name + "_contents")
-                os.makedirs(nested_extract_path, exist_ok=True)
-                print(f"Extracting nested tarball {nested_tar_path} into {nested_extract_path}")
-                extract_tarball(nested_tar_path, nested_extract_path)
-
+        if current_depth < max_depth:
+            for member in tar.getmembers():
+                if member.isfile() and member.name.endswith(('.tar', '.tar.gz', '.tar.bz2', '.tar.xz')):
+                    nested_tar_path = os.path.join(extract_path, member.name)
+                    nested_extract_path = os.path.join(extract_path, member.name + "_contents")
+                    os.makedirs(nested_extract_path, exist_ok=True)
+                    print(f"Extracting nested tarball {nested_tar_path} into {nested_extract_path}")
+                    extract_tarball(nested_tar_path, nested_extract_path, max_depth, current_depth + 1)
 
 def list_contents_in_tree_format(path, output_file):
     try:
@@ -40,14 +39,13 @@ def list_contents_in_tree_format(path, output_file):
     except subprocess.CalledProcessError as e:
         print(f"Error occurred while listing contents with tree: {e}")
 
-
-def main(tarball_path):
+def main(tarball_path, max_depth):
     extract_dir = 'extracted_contents'
     if not os.path.exists(extract_dir):
         os.makedirs(extract_dir)
     
     try:
-        extract_tarball(tarball_path, extract_dir)
+        extract_tarball(tarball_path, extract_dir, max_depth)
         
         # Generate the output file name
         output_file = os.path.splitext(tarball_path)[0] + '.txt'
@@ -60,4 +58,5 @@ def main(tarball_path):
 
 if __name__ == "__main__":
     tarball_path = "example.tar.gz"  # Replace with your tarball file path
-    main(tarball_path)
+    max_depth = int(input("Enter the maximum depth of nested tarballs to extract: "))
+    main(tarball_path, max_depth)
