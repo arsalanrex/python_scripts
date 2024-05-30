@@ -1,7 +1,7 @@
 import os
 import tarfile
 import subprocess
-import tempfile
+import shutil
 
 
 def extract_tarball(tarball_path, extract_path):
@@ -42,14 +42,21 @@ def list_contents_in_tree_format(path, output_file):
 
 
 def main(tarball_path):
-    with tempfile.TemporaryDirectory() as temp_dir:
-        print(f"Created temporary directory at {temp_dir}")
-        extract_tarball(tarball_path, temp_dir)
+    extract_dir = 'extracted_contents'
+    if not os.path.exists(extract_dir):
+        os.makedirs(extract_dir)
+    
+    try:
+        extract_tarball(tarball_path, extract_dir)
         
         # Generate the output file name
         output_file = os.path.splitext(tarball_path)[0] + '.txt'
-        list_contents_in_tree_format(temp_dir, output_file)
-
+        list_contents_in_tree_format(extract_dir, output_file)
+    
+    finally:
+        # Clean up the extract directory
+        shutil.rmtree(extract_dir)
+        print(f"Cleaned up directory {extract_dir}")
 
 if __name__ == "__main__":
     tarball_path = "example.tar.gz"  # Replace with your tarball file path
