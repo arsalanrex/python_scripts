@@ -1,23 +1,26 @@
 import requests
+import urllib3
 from requests.auth import HTTPBasicAuth
+urlib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Replace these with your actual Nexus IQ server URL and credentials
 NEXUS_IQ_URL = 'https://your-nexus-iq-server-url'
 USERNAME = 'your-username'
 PASSWORD = 'your-password'
 
-def get_cve_for_artifact(artifact_id, version):
+def get_cve_for_artifact(group_id, artifact_id, version):
     url = f"{NEXUS_IQ_URL}/api/v2/components/details"
     headers = {'Content-Type': 'application/json'}
+    purl = f"pkg:maven/{group_id}/{artifact_id}@{version}"
     payload = {
         "components": [
             {
-                "packageUrl": f"pkg:maven/{artifact_id}@{version}"
+                "packageUrl": purl
             }
         ]
     }
 
-    response = requests.post(url, json=payload, headers=headers, auth=HTTPBasicAuth(USERNAME, PASSWORD))
+    response = requests.post(url, json=payload, headers=headers, auth=HTTPBasicAuth(USERNAME, PASSWORD), verify=False)
 
     if response.status_code == 200:
         data = response.json()
@@ -29,29 +32,36 @@ def get_cve_for_artifact(artifact_id, version):
             else:
                 return []
         else:
-            print(f"No component data found for {artifact_id}@{version}")
+            print(f"No component data found for {group_id}/{artifact_id}@{version}")
             return []
     else:
-        print(f"Failed to retrieve data for {artifact_id}@{version}, status code: {response.status_code}")
+        print(f"Failed to retrieve data for {group_id}/{artifact_id}@{version}, status code: {response.status_code}")
+        print(response.json())  # Print the error response for debugging
         return []
 
 def main():
     artifacts = [
-        "artifactID1@version1",
-        "artifactID2@version2",
+        "groupID1:artifactID1@version1",
+        "groupID2:artifactID2@version2",
         # Add more artifacts as needed
     ]
 
     for artifact in artifacts:
-        artifact_id, version = artifact.split('@')
-        print(f"Checking CVEs for {artifact_id}@{version}...")
-        cves = get_cve_for_artifact(artifact_id, version)
+        try:
+            group_artifact, version = artifact.split('@')
+            group_id, artifact_id = group_artifact.split(':')
+        except ValueError:
+            print(f"Invalid artifact format: {artifact}")
+            continue
+        
+        print(f"Checking CVEs for {group_id}:{artifact_id}@{version}...")
+        cves = get_cve_for_artifact(group_id, artifact_id, version)
         if cves:
-            print(f"Found {len(cves)} CVE(s) for {artifact_id}@{version}:")
+            print(f"Found {len(cves)} CVE(s) for {group_id}:{artifact_id}@{version}:")
             for cve in cves:
                 print(f"  - {cve['reference']} - {cve['severity']} - {cve['url']}")
         else:
-            print(f"No CVEs found for {artifact_id}@{version}")
+            print(f"No CVEs found for {group_id}:{artifact_id}@{version}")
 
 if __name__ == "__main__":
     main()
