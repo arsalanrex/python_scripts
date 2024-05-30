@@ -40,7 +40,7 @@ def list_contents_in_tree_format(path, output_file):
         print(f"Error occurred while listing contents with tree: {e}")
 
 def main(tarball_path, max_depth):
-    extract_dir = 'extracted_contents'
+    extract_dir = os.path.splitext(os.path.basename(tarball_path))[0]
     if not os.path.exists(extract_dir):
         os.makedirs(extract_dir)
     
