@@ -3,6 +3,7 @@ import tarfile
 import subprocess
 import tempfile
 
+
 def extract_tarball(tarball_path, extract_path):
     with tarfile.open(tarball_path, "r:*") as tar:
         tar.extractall(path=extract_path)
@@ -14,18 +15,26 @@ def extract_tarball(tarball_path, extract_path):
                 print(f"Extracting nested tarball {nested_tar_path} into {nested_extract_path}")
                 extract_tarball(nested_tar_path, nested_extract_path)
 
-def list_contents_in_tree_format(path):
+
+def list_contents_in_tree_format(path, output_file):
     try:
         result = subprocess.run(['tree', path], check=True, capture_output=True, text=True)
-        print(result.stdout)
+        with open(output_file, 'w') as file:
+            file.write(result.stdout)
+        print(f"Tree output saved to {output_file}")
     except subprocess.CalledProcessError as e:
         print(f"Error occurred while listing contents with tree: {e}")
+
 
 def main(tarball_path):
     with tempfile.TemporaryDirectory() as temp_dir:
         print(f"Created temporary directory at {temp_dir}")
         extract_tarball(tarball_path, temp_dir)
-        list_contents_in_tree_format(temp_dir)
+        
+        # Generate the output file name
+        output_file = os.path.splitext(tarball_path)[0] + '.txt'
+        list_contents_in_tree_format(temp_dir, output_file)
+
 
 if __name__ == "__main__":
     tarball_path = "example.tar.gz"  # Replace with your tarball file path
